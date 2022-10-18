@@ -3,41 +3,52 @@ import Todo from '../components/Todo';
 import Add from '../components/Add';
 
 function Home() {
-  const [todoList, setTodoList] = useState(
-    JSON.parse(localStorage.getItem('todoList'))
-      ? JSON.parse(localStorage.getItem('todoList'))
-      : []
-  );
+  const [todoList, setTodoList] = useState([]);
   const [id, setId] = useState(0);
   const isMount = useRef(true);
 
-  useEffect(() => {
-    if (!isMount.current) {
-      localStorage.setItem('todoList', JSON.stringify(todoList));
-      localStorage.setItem('id', id);
-    }
-  }, [todoList, id]);
+  // useEffect(() => {
+  //   if (!isMount.current) {
+  //     localStorage.setItem('todoList', JSON.stringify(todoList));
+  //     localStorage.setItem('id', id);
+  //   }
+  // }, [todoList, id]);
 
   useEffect(() => {
-    const localTodoList = localStorage.getItem('todoList');
-    if (localTodoList) {
-      setTodoList(JSON.parse(localTodoList));
-    }
-    const localId = localStorage.getItem('id');
-    if (localId) {
-      setId(parseInt(localId, 10));
-    }
+    // const localTodoList = localStorage.getItem('todoList');
+    // if (localTodoList) {
+    //   setTodoList(JSON.parse(localTodoList));
+    // }
+    // const localId = localStorage.getItem('id');
+    // if (localId) {
+    //   setId(parseInt(localId, 10));
+    // }
+    fetch('http://localhost:3001/todo', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setTodoList(data);
+        setId(data[data.length - 1].id);
+      })
+      .catch((error) => console.error('Error:', error));
     isMount.current = false;
-  }, []);
+  }, [id]);
 
   const addTodo = useCallback(
     (todo) => (e) => {
       e.preventDefault();
       if (todo) {
-        setTodoList((prevState) => [
-          ...prevState,
-          { id, todo, isChecked: false },
-        ]);
+        // setTodoList((prevState) => [
+        //   ...prevState,
+        //   { id, todo, isChecked: false },
+        // ]);
+        fetch(`http://localhost:3001/todo`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id + 1, todo, isChecked: false }),
+        });
         setId(id + 1);
       }
     },
@@ -54,6 +65,15 @@ function Home() {
         isChecked,
       });
       setTodoList(newTodoList);
+
+      fetch(`http://localhost:3001/todo/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          todo,
+          isChecked,
+        }),
+      });
     },
     [todoList]
   );
@@ -62,6 +82,10 @@ function Home() {
     (id) => () => {
       const newTodoList = todoList.filter((info) => info.id !== id);
       setTodoList(newTodoList);
+      fetch(`http://localhost:3001/todo/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
     },
     [todoList]
   );
@@ -71,7 +95,15 @@ function Home() {
       const idx = todoList.findIndex((info) => info.id === id);
       const newTodoList = [...todoList];
       newTodoList[idx].isChecked = !newTodoList[idx].isChecked;
+      const isChecked = newTodoList[idx].isChecked;
       setTodoList(newTodoList);
+      fetch(`http://localhost:3001/todo/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isChecked,
+        }),
+      });
     },
     [todoList]
   );
